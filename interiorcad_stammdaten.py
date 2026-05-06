@@ -6,13 +6,13 @@ interiorcad Stammdaten Tool
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import os, re, codecs, glob, json, shutil, sys, tempfile, time, xml.etree.ElementTree as ET
+import os, re, codecs, glob, json, shutil, sys, tempfile, xml.etree.ElementTree as ET
 import platform
 
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.2"
+VERSION     = "1.0.3"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -616,52 +616,15 @@ class App(tk.Tk):
         ttk.Button(_bar, text="✔  Einträge schreiben",
                    command=self._write_entries).pack(side="right")
 
-        # Scrollbarer Bereich
-        _canvas = tk.Canvas(self, highlightthickness=0)
-        _vsb = ttk.Scrollbar(self, orient="vertical", command=_canvas.yview)
-        _canvas.configure(yscrollcommand=_vsb.set)
-        _vsb.pack(side="right", fill="y")
-        _canvas.pack(side="left", fill="both", expand=True)
-        p = ttk.Frame(_canvas)
-        _win = _canvas.create_window((0, 0), window=p, anchor="nw")
-        p.bind("<Configure>", lambda e: _canvas.configure(
-            scrollregion=_canvas.bbox("all")))
-        _canvas.bind("<Configure>", lambda e: _canvas.itemconfig(
-            _win, width=e.width))
-        _last_scroll_t = [0.0]
-
-        def _scroll(e):
-            top, bottom = _canvas.yview()
-            if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
-                return "break"
-            now = time.monotonic()
-            if now - _last_scroll_t[0] < 0.016:
-                return "break"
-            _last_scroll_t[0] = now
-            _canvas.yview_scroll(int(-1 * e.delta), "units")
-            return "break"
-
-        self._scroll_handler = _scroll
-        if IS_WINDOWS:
-            def _scroll_win(e):
-                top, bottom = _canvas.yview()
-                if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
-                    return "break"
-                now = time.monotonic()
-                if now - _last_scroll_t[0] < 0.016:
-                    return "break"
-                _last_scroll_t[0] = now
-                _canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
-                return "break"
-            self.bind_all("<MouseWheel>", _scroll_win)
-            self._scroll_handler = _scroll_win
-        else:
-            self.bind_all("<MouseWheel>", _scroll)
+        # Header: AGO + Dekor (immer sichtbar, außerhalb des Notebooks)
+        header = ttk.Frame(self)
+        header.pack(fill="x")
 
         # ── AGO-Auswahl ───────────────────────────────────────────────────────
-        self._section(p, "Arbeitsgruppenordner (AGO)")
-        ago_frame = ttk.LabelFrame(p, padding=10)
+        self._section(header, "Arbeitsgruppenordner (AGO)")
+        ago_frame = ttk.LabelFrame(header, padding=10)
         ago_frame.pack(fill="x", padx=16, pady=(0, 4))
+        ago_frame.columnconfigure(1, weight=1)
 
         ttk.Label(ago_frame, text="AGO", font=FONT_SM).grid(
             row=0, column=0, sticky="w", padx=(0, 8), pady=4)
@@ -684,17 +647,16 @@ class App(tk.Tk):
                    command=self._choose_ago_manually).grid(
             row=0, column=2, padx=(8, 0), pady=4)
 
-        # Pfad-Anzeige (readonly, klein)
         ttk.Label(ago_frame, textvariable=self.ago_path_var,
                   font=("System", 11),
                   foreground="gray").grid(
             row=1, column=1, sticky="w", pady=(0, 4))
 
-
         # ── Dekor / Wurzelname ────────────────────────────────────────────────
-        self._section(p, "Dekor")
-        dec = ttk.LabelFrame(p, padding=10)
+        self._section(header, "Dekor")
+        dec = ttk.LabelFrame(header, padding=10)
         dec.pack(fill="x", padx=16, pady=(0, 4))
+        dec.columnconfigure(1, weight=1)
 
         ttk.Label(dec, text="Wurzelname", font=FONT_SM).grid(
             row=0, column=0, sticky="w", padx=(0, 8), pady=4)
@@ -706,20 +668,28 @@ class App(tk.Tk):
                    command=self._fill_from_root).grid(
             row=0, column=2, padx=(8, 0), pady=4)
 
-        # ── Zwei Spalten ──────────────────────────────────────────────────────
-        cols = ttk.Frame(p)
-        cols.pack(fill="both", padx=16, pady=(4, 0))
-        cols.columnconfigure(0, weight=1)
-        cols.columnconfigure(1, weight=1)
+        # ── Haupt-Notebook ────────────────────────────────────────────────────
+        main_nb = ttk.Notebook(self)
+        main_nb.pack(fill="both", expand=True, padx=8, pady=(4, 8))
 
-        # ── LINKS: Plattenparameter ───────────────────────────────────────────
-        left = ttk.Frame(cols)
+        # ── Tab: Platten ──────────────────────────────────────────────────────
+        tab_platten = ttk.Frame(main_nb, padding=(8, 8))
+        main_nb.add(tab_platten, text="  Platten  ")
+        tab_platten.columnconfigure(0, weight=3)
+        tab_platten.columnconfigure(1, weight=1)
+        tab_platten.rowconfigure(0, weight=1)
+
+        left = ttk.Frame(tab_platten)
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        right_pl = ttk.Frame(tab_platten)
+        right_pl.grid(row=0, column=1, sticky="nsew")
 
+        # Plattenparameter
         ttk.Label(left, text="Plattenparameter",
-                  font=FONT_BOLD).pack(anchor="w", pady=(8, 2))
+                  font=FONT_BOLD).pack(anchor="w", pady=(0, 2))
         pf = ttk.LabelFrame(left, padding=10)
         pf.pack(fill="x")
+        pf.columnconfigure(1, weight=1)
 
         self.board_vars    = {}
         self.board_entries = {}
@@ -748,29 +718,25 @@ class App(tk.Tk):
         ]
         for i, (label, key, default, locked, options) in enumerate(board_fields):
             if options:
-                # Dropdown
                 ttk.Label(pf, text=label, font=FONT_SM).grid(
                     row=i, column=0, sticky="w", padx=(0, 10), pady=3)
                 internal_var = tk.StringVar(value=default)
                 display_var  = tk.StringVar()
                 self.board_vars[key] = internal_var
-                var = internal_var  # für idx-Lookup unten
+                var = internal_var
                 display_vals  = [o[0] for o in options]
                 internal_vals = [o[1] for o in options]
                 combo = ttk.Combobox(pf, textvariable=display_var,
                                      values=display_vals,
                                      state="readonly", width=30, font=FONT)
-                # Anzeigewert setzen (deutsch), internen Wert in var
                 try:
                     idx = internal_vals.index(default)
                 except ValueError:
                     idx = 0
                 combo.set(display_vals[idx])
                 var.set(internal_vals[idx])
-                # var tracen: immer internen Wert halten
                 combo.grid(row=i, column=1, sticky="ew", ipady=3, pady=3)
                 self.board_entries[key] = combo
-                # Beim Auswählen internen Wert in var speichern
                 def make_cb(iv, ivals, dvals, cb):
                     def cb_select(e, iv=iv, ivals=ivals, dvals=dvals, cb=cb):
                         try:
@@ -796,46 +762,10 @@ class App(tk.Tk):
                                       locked=locked, row=i)
                 var.set(default)
 
-        # ── RECHTS ────────────────────────────────────────────────────────────
-        right = ttk.Frame(cols)
-        right.grid(row=0, column=1, sticky="nsew")
-
-        # Kantenparameter
-        ttk.Label(right, text="Kantenparameter",
-                  font=FONT_BOLD).pack(anchor="w", pady=(8, 2))
-        ef = ttk.LabelFrame(right, padding=10)
-        ef.pack(fill="x")
-
-        # Kanten-Wurzelname
-        ttk.Label(ef, text="Wurzelname", font=FONT_SM).grid(
-            row=0, column=0, sticky="w", padx=(0, 10), pady=3)
-        self.edge_root_var = tk.StringVar()
-        ttk.Entry(ef, textvariable=self.edge_root_var, width=32,
-                  font=FONT).grid(row=0, column=1, sticky="ew",
-                                  ipady=3, pady=3)
-        ttk.Button(ef, text="⚡", width=3,
-                   command=self._fill_edge_from_root).grid(
-            row=0, column=2, padx=(6, 0), pady=3)
-        # Kein Stift-Button mehr
-
-        self.edge_vars    = {}
-        self.edge_entries = {}
-        edge_fields = [
-            ("ID (Stamm)",        "edge_item_no",  "",                         True),
-            ("Textur (Kante)",  "edge_texture",  "",                         True),
-            ("Lieferant",       "edge_supplier", "Holz Hahn GmbH - Krefeld", False),
-            ("Verschnitt (%)",  "edge_waste",    "10",                       False),
-        ]
-        for i, (label, key, default, locked) in enumerate(edge_fields):
-            var = self._field_row(ef, label, key,
-                                  self.edge_vars, self.edge_entries,
-                                  locked=locked, row=i+1)
-            var.set(default)
-
         # Plattenstärken
-        ttk.Label(right, text="Plattenstärken",
-                  font=FONT_BOLD).pack(anchor="w", pady=(12, 2))
-        tf = ttk.LabelFrame(right, padding=10)
+        ttk.Label(right_pl, text="Plattenstärken",
+                  font=FONT_BOLD).pack(anchor="w", pady=(0, 2))
+        tf = ttk.LabelFrame(right_pl, padding=10)
         tf.pack(fill="x")
 
         self.thick_vars = {}
@@ -854,7 +784,6 @@ class App(tk.Tk):
                    command=self._reset_thick).grid(
             row=btn_row, column=1, sticky="w", padx=8, pady=(6, 2))
 
-        # Benutzerdefinierte Stärken
         ttk.Separator(tf, orient="horizontal").grid(
             row=btn_row+1, column=0, columnspan=2,
             sticky="ew", padx=4, pady=(8, 4))
@@ -869,17 +798,59 @@ class App(tk.Tk):
                    command=self._add_custom_thick).grid(
             row=add_row, column=1, sticky="w", padx=4, pady=2)
 
-        # Frame für custom Checkboxen
         self._custom_thick_frame = ttk.Frame(tf)
         self._custom_thick_frame.grid(
             row=add_row+1, column=0, columnspan=2,
             sticky="ew", padx=4, pady=2)
         self._rebuild_custom_thick()
 
+        # ── Tab: Kanten ───────────────────────────────────────────────────────
+        tab_kanten = ttk.Frame(main_nb, padding=(8, 8))
+        main_nb.add(tab_kanten, text="  Kanten  ")
+        tab_kanten.columnconfigure(0, weight=1)
+        tab_kanten.columnconfigure(1, weight=2)
+        tab_kanten.rowconfigure(0, weight=1)
+
+        k_left = ttk.Frame(tab_kanten)
+        k_left.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        k_right = ttk.Frame(tab_kanten)
+        k_right.grid(row=0, column=1, sticky="nsew")
+
+        # Kantenparameter
+        ttk.Label(k_left, text="Kantenparameter",
+                  font=FONT_BOLD).pack(anchor="w", pady=(0, 2))
+        ef = ttk.LabelFrame(k_left, padding=10)
+        ef.pack(fill="x")
+        ef.columnconfigure(1, weight=1)
+
+        ttk.Label(ef, text="Wurzelname", font=FONT_SM).grid(
+            row=0, column=0, sticky="w", padx=(0, 10), pady=3)
+        self.edge_root_var = tk.StringVar()
+        ttk.Entry(ef, textvariable=self.edge_root_var, width=32,
+                  font=FONT).grid(row=0, column=1, sticky="ew",
+                                  ipady=3, pady=3)
+        ttk.Button(ef, text="⚡", width=3,
+                   command=self._fill_edge_from_root).grid(
+            row=0, column=2, padx=(6, 0), pady=3)
+
+        self.edge_vars    = {}
+        self.edge_entries = {}
+        edge_fields = [
+            ("ID (Stamm)",        "edge_item_no",  "",                         True),
+            ("Textur (Kante)",  "edge_texture",  "",                         True),
+            ("Lieferant",       "edge_supplier", "Holz Hahn GmbH - Krefeld", False),
+            ("Verschnitt (%)",  "edge_waste",    "10",                       False),
+        ]
+        for i, (label, key, default, locked) in enumerate(edge_fields):
+            var = self._field_row(ef, label, key,
+                                  self.edge_vars, self.edge_entries,
+                                  locked=locked, row=i+1)
+            var.set(default)
+
         # Kanten-Grid
-        ttk.Label(right, text="Kanten  (Breite × Dicke)",
-                  font=FONT_BOLD).pack(anchor="w", pady=(12, 2))
-        kf = ttk.LabelFrame(right, padding=10)
+        ttk.Label(k_right, text="Kanten  (Breite × Dicke)",
+                  font=FONT_BOLD).pack(anchor="w", pady=(0, 2))
+        kf = ttk.LabelFrame(k_right, padding=10)
         kf.pack(fill="x")
 
         ttk.Label(kf, text="", width=5).grid(row=0, column=0)
@@ -909,7 +880,6 @@ class App(tk.Tk):
             row=edge_btn_row, column=2,
             columnspan=2, sticky="w", padx=0, pady=(6, 2))
 
-        # Benutzerdefinierte Kanten
         ttk.Separator(kf, orient="horizontal").grid(
             row=edge_btn_row+1, column=0, columnspan=4,
             sticky="ew", padx=4, pady=(8, 4))
@@ -936,10 +906,12 @@ class App(tk.Tk):
             sticky="ew", padx=0, pady=2)
         self._rebuild_custom_edges()
 
-        # ── Vorschau ─────────────────────────────────────────────────────────
-        self._section(p, "Vorschau")
-        nb = ttk.Notebook(p)
-        nb.pack(fill="x", padx=16, pady=(0, 8))
+        # ── Tab: Vorschau ─────────────────────────────────────────────────────
+        tab_vorschau = ttk.Frame(main_nb, padding=(8, 8))
+        main_nb.add(tab_vorschau, text="  Vorschau  ")
+
+        nb = ttk.Notebook(tab_vorschau)
+        nb.pack(fill="both", expand=True)
 
         # Tab Platten
         tab_b = ttk.Frame(nb)
@@ -1677,8 +1649,6 @@ class BoardsTable(tk.Toplevel):
         self._pending = []   # geänderte/gelöschte Einträge
         self._build()
         self.geometry("1200x600")
-        # Haupt-Scroll deaktivieren solange dieses Fenster offen ist
-        parent.unbind_all("<MouseWheel>")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._parent = parent
         self.update_idletasks()
@@ -1810,8 +1780,6 @@ class BoardsTable(tk.Toplevel):
         self._apply_filter()
 
     def _on_close(self):
-        self._parent.bind_all("<MouseWheel>",
-            self._parent._scroll_handler)
         self.destroy()
 
     def _save(self):
@@ -2002,8 +1970,6 @@ class EdgesTable(tk.Toplevel):
         self.geometry("+{}+{}".format(
             (sw - 1200) // 2,
             (sh - 600)  // 2))
-        # Haupt-Scroll deaktivieren
-        parent.unbind_all("<MouseWheel>")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._parent = parent
 
@@ -2126,8 +2092,6 @@ class EdgesTable(tk.Toplevel):
         self._apply_filter()
 
     def _on_close(self):
-        self._parent.bind_all("<MouseWheel>",
-            self._parent._scroll_handler)
         self.destroy()
 
     def _save(self):
