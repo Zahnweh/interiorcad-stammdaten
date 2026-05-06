@@ -514,6 +514,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.withdraw()
         self.title("interiorcad Stammdaten Tool")
         self.resizable(True, True)
         self._agos              = []
@@ -535,6 +536,7 @@ class App(tk.Tk):
         h = min(int(sh * 0.9), sh - 80)
         self.geometry("{}x{}+{}+{}".format(
             w, h, (sw - w) // 2, (sh - h) // 2))
+        self.deiconify()
 
     # ── AGO-Suche im Hintergrund ──────────────────────────────────────────────
 
@@ -629,16 +631,18 @@ class App(tk.Tk):
         def _scroll(e):
             top, bottom = _canvas.yview()
             if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
-                return
-            _canvas.yview_scroll(-1 * e.delta, "units")
+                return "break"
+            _canvas.yview_scroll(int(-1 * e.delta), "units")
+            return "break"
 
         self._scroll_handler = _scroll
         if IS_WINDOWS:
             def _scroll_win(e):
                 top, bottom = _canvas.yview()
                 if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
-                    return
+                    return "break"
                 _canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+                return "break"
             self.bind_all("<MouseWheel>", _scroll_win)
             self._scroll_handler = _scroll_win
         else:
