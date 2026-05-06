@@ -6,13 +6,13 @@ interiorcad Stammdaten Tool
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import os, re, codecs, glob, json, shutil, sys, tempfile, xml.etree.ElementTree as ET
+import os, re, codecs, glob, json, shutil, sys, tempfile, time, xml.etree.ElementTree as ET
 import platform
 
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.0"
+VERSION     = "1.0.2"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -628,10 +628,16 @@ class App(tk.Tk):
             scrollregion=_canvas.bbox("all")))
         _canvas.bind("<Configure>", lambda e: _canvas.itemconfig(
             _win, width=e.width))
+        _last_scroll_t = [0.0]
+
         def _scroll(e):
             top, bottom = _canvas.yview()
             if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
                 return "break"
+            now = time.monotonic()
+            if now - _last_scroll_t[0] < 0.016:
+                return "break"
+            _last_scroll_t[0] = now
             _canvas.yview_scroll(int(-1 * e.delta), "units")
             return "break"
 
@@ -641,6 +647,10 @@ class App(tk.Tk):
                 top, bottom = _canvas.yview()
                 if (e.delta > 0 and top <= 0.001) or (e.delta < 0 and bottom >= 0.999):
                     return "break"
+                now = time.monotonic()
+                if now - _last_scroll_t[0] < 0.016:
+                    return "break"
+                _last_scroll_t[0] = now
                 _canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
                 return "break"
             self.bind_all("<MouseWheel>", _scroll_win)

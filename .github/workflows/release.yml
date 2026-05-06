@@ -24,7 +24,7 @@ jobs:
       - name: App bauen (ARM64)
         run: |
           pyinstaller \
-            --windowed --onefile \
+            --windowed \
             --name "interiorcad Stammdaten" \
             --icon "AppIcon.icns" \
             --osx-bundle-identifier "com.interiorcad.stammdaten" \
@@ -60,7 +60,7 @@ jobs:
       - name: App bauen (Intel)
         run: |
           pyinstaller \
-            --windowed --onefile \
+            --windowed \
             --name "interiorcad Stammdaten" \
             --icon "AppIcon.icns" \
             --osx-bundle-identifier "com.interiorcad.stammdaten" \

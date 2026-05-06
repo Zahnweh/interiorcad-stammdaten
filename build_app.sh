@@ -30,7 +30,6 @@ rm -rf build dist "$APP_NAME.spec"
 
 pyinstaller \
     --windowed \
-    --onefile \
     --name "$APP_NAME" \
     --icon "$ICON" \
     --osx-bundle-identifier "com.interiorcad.stammdaten" \
