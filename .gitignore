@@ -1,0 +1,19 @@
+# Build-Artefakte
+build/
+dist/
+*.spec
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Nutzerdaten (nicht ins Repo)
+custom_values.json
+
+# macOS
+.DS_Store
+
+# Update-Temp-Dateien
+*.tmp
+*.bak
