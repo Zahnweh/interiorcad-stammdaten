@@ -41,7 +41,11 @@ pyinstaller \
 
 echo ""
 if [ -d "dist/$APP_NAME.app" ]; then
-    echo "✅ App erfolgreich gebaut!"
+    APP_VERSION=$(python3 -c "import re; m=re.search(r'VERSION\s*=\s*\"([^\"]+)\"', open('$PY_SCRIPT').read()); print(m.group(1))")
+    PLIST="dist/$APP_NAME.app/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "$PLIST"
+    echo "✅ App erfolgreich gebaut! (Version $APP_VERSION)"
     echo "📦 Speicherort: $SCRIPT_DIR/dist/$APP_NAME.app"
     open "dist/"
 else

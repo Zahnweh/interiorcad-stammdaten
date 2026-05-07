@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.5"
+VERSION     = "1.0.6"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -617,16 +617,16 @@ class App(tk.Tk):
     def _build_menu(self):
         import threading
         menubar = tk.Menu(self)
-        self.config(menu=menubar)
         if IS_MAC:
+            # createcommand muss vor config(menu=...) registriert werden
+            self.createcommand('::tk::mac::ShowAbout', self._show_about)
             apple_menu = tk.Menu(menubar, name='apple')
-            menubar.add_cascade(menu=apple_menu)
+            menubar.add_cascade(label='Apple', menu=apple_menu)
             apple_menu.add_command(
                 label="Auf Updates prüfen…",
                 command=lambda: threading.Thread(
                     target=lambda: _check_for_updates(self, silent=False),
                     daemon=True).start())
-            self.createcommand('::tk::mac::ShowAbout', self._show_about)
         else:
             help_menu = tk.Menu(menubar, tearoff=0)
             menubar.add_cascade(label="Hilfe", menu=help_menu)
@@ -638,6 +638,7 @@ class App(tk.Tk):
                 command=lambda: threading.Thread(
                     target=lambda: _check_for_updates(self, silent=False),
                     daemon=True).start())
+        self.config(menu=menubar)
 
     def _build_ui(self):
         self._build_menu()
