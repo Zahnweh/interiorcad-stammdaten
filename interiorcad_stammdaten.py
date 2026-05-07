@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.4"
+VERSION     = "1.0.5"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -608,25 +608,36 @@ class App(tk.Tk):
 
     # ── UI aufbauen ───────────────────────────────────────────────────────────
 
+    def _show_about(self):
+        messagebox.showinfo(
+            "Über interiorcad Stammdaten",
+            "interiorcad Stammdaten Tool\nVersion {}\n\n© extragroup GmbH".format(VERSION),
+            parent=self)
+
     def _build_menu(self):
         import threading
         menubar = tk.Menu(self)
         self.config(menu=menubar)
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Hilfe", menu=help_menu)
-        help_menu.add_command(
-            label="Auf Updates prüfen…",
-            command=lambda: threading.Thread(
-                target=lambda: _check_for_updates(self, silent=False),
-                daemon=True).start())
-        help_menu.add_separator()
-        help_menu.add_command(
-            label="Über interiorcad Stammdaten…",
-            command=lambda: messagebox.showinfo(
-                "Über interiorcad Stammdaten",
-                "interiorcad Stammdaten Tool\nVersion {}\n\n"
-                "© extragroup GmbH".format(VERSION),
-                parent=self))
+        if IS_MAC:
+            apple_menu = tk.Menu(menubar, name='apple')
+            menubar.add_cascade(menu=apple_menu)
+            apple_menu.add_command(
+                label="Auf Updates prüfen…",
+                command=lambda: threading.Thread(
+                    target=lambda: _check_for_updates(self, silent=False),
+                    daemon=True).start())
+            self.createcommand('::tk::mac::ShowAbout', self._show_about)
+        else:
+            help_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Hilfe", menu=help_menu)
+            help_menu.add_command(label="Über interiorcad Stammdaten…",
+                                  command=self._show_about)
+            help_menu.add_separator()
+            help_menu.add_command(
+                label="Auf Updates prüfen…",
+                command=lambda: threading.Thread(
+                    target=lambda: _check_for_updates(self, silent=False),
+                    daemon=True).start())
 
     def _build_ui(self):
         self._build_menu()
