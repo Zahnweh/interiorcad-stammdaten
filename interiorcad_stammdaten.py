@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.7"
+VERSION     = "1.0.8"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -627,6 +627,10 @@ class App(tk.Tk):
         if IS_MAC:
             apple_menu = tk.Menu(menubar, name='apple')
             menubar.add_cascade(label='Apple', menu=apple_menu)
+            apple_menu.add_command(
+                label="Über interiorcad Stammdaten…",
+                command=self._show_about)
+            apple_menu.add_separator()
             apple_menu.add_command(
                 label="Auf Updates prüfen…",
                 command=lambda: threading.Thread(
