@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.8"
+VERSION     = "1.0.9"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -618,7 +618,7 @@ class App(tk.Tk):
     def _show_about(self):
         messagebox.showinfo(
             "Über interiorcad Stammdaten",
-            "interiorcad Stammdaten Tool\nVersion {}\n\n© extragroup GmbH".format(VERSION),
+            "interiorcad Stammdaten Tool\nVersion {}\n\nMarcel Ostendorf, extragroup GmbH".format(VERSION),
             parent=self)
 
     def _build_menu(self):
