@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.3"
+VERSION     = "1.0.4"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ def _get_app_path():
         return None
     return sys.executable
 
-def _check_for_updates(app):
+def _check_for_updates(app, silent=True):
     import urllib.request, json as _json
     try:
         url = "https://api.github.com/repos/{}/releases/latest".format(GITHUB_REPO)
@@ -325,8 +325,17 @@ def _check_for_updates(app):
         ver = tag.lstrip("v")
         if ver and _ver_tuple(ver) > _ver_tuple(VERSION):
             app.after(0, lambda: _offer_update(app, data))
-    except Exception:
-        pass
+        elif not silent:
+            app.after(0, lambda: messagebox.showinfo(
+                "Kein Update verfügbar",
+                "Sie verwenden bereits die aktuelle Version (v{}).".format(VERSION),
+                parent=app))
+    except Exception as e:
+        if not silent:
+            app.after(0, lambda err=str(e): messagebox.showerror(
+                "Update-Prüfung fehlgeschlagen",
+                "Verbindung konnte nicht hergestellt werden:\n{}".format(err),
+                parent=app))
 
 def _offer_update(app, release_data):
     tag = release_data.get("tag_name", "?")
@@ -599,7 +608,28 @@ class App(tk.Tk):
 
     # ── UI aufbauen ───────────────────────────────────────────────────────────
 
+    def _build_menu(self):
+        import threading
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Hilfe", menu=help_menu)
+        help_menu.add_command(
+            label="Auf Updates prüfen…",
+            command=lambda: threading.Thread(
+                target=lambda: _check_for_updates(self, silent=False),
+                daemon=True).start())
+        help_menu.add_separator()
+        help_menu.add_command(
+            label="Über interiorcad Stammdaten…",
+            command=lambda: messagebox.showinfo(
+                "Über interiorcad Stammdaten",
+                "interiorcad Stammdaten Tool\nVersion {}\n\n"
+                "© extragroup GmbH".format(VERSION),
+                parent=self))
+
     def _build_ui(self):
+        self._build_menu()
         # Bottom-Bar fest unten verankern
         self._bottom_bar = ttk.Frame(self)
         self._bottom_bar.pack(side="bottom", fill="x")
