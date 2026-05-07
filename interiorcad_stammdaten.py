@@ -12,7 +12,7 @@ import platform
 IS_MAC     = platform.system() == "Darwin"
 IS_WINDOWS = platform.system() == "Windows"
 
-VERSION     = "1.0.6"
+VERSION     = "1.0.7"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 # ── Konstanten ────────────────────────────────────────────────────────────────
@@ -314,12 +314,19 @@ def _get_app_path():
     return sys.executable
 
 def _check_for_updates(app, silent=True):
-    import urllib.request, json as _json
+    import urllib.request, json as _json, ssl
     try:
         url = "https://api.github.com/repos/{}/releases/latest".format(GITHUB_REPO)
         req = urllib.request.Request(
             url, headers={"User-Agent": "interiorcad-Stammdaten/{}".format(VERSION)})
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        # PyInstaller-Apps auf macOS finden system SSL certs nicht automatisch
+        ctx = ssl.create_default_context()
+        if getattr(sys, 'frozen', False) and IS_MAC:
+            for _p in ('/etc/ssl/cert.pem', '/etc/ssl/certs/ca-certificates.crt'):
+                if os.path.exists(_p):
+                    ctx = ssl.create_default_context(cafile=_p)
+                    break
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
             data = _json.loads(resp.read().decode())
         tag = data.get("tag_name", "")
         ver = tag.lstrip("v")
@@ -618,8 +625,6 @@ class App(tk.Tk):
         import threading
         menubar = tk.Menu(self)
         if IS_MAC:
-            # createcommand muss vor config(menu=...) registriert werden
-            self.createcommand('::tk::mac::ShowAbout', self._show_about)
             apple_menu = tk.Menu(menubar, name='apple')
             menubar.add_cascade(label='Apple', menu=apple_menu)
             apple_menu.add_command(
