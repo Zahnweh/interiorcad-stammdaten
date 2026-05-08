@@ -4,7 +4,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PY_SCRIPT="$SCRIPT_DIR/interiorcad_stammdaten.py"
+PY_SCRIPT="$SCRIPT_DIR/main.py"
 ICON="$SCRIPT_DIR/AppIcon.icns"
 APP_NAME="interiorcad Stammdaten"
 
@@ -41,7 +41,8 @@ pyinstaller \
 
 echo ""
 if [ -d "dist/$APP_NAME.app" ]; then
-    APP_VERSION=$(python3 -c "import re; m=re.search(r'VERSION\s*=\s*\"([^\"]+)\"', open('$PY_SCRIPT').read()); print(m.group(1))")
+    APP_VERSION=$(python3 -c "from core.constants import VERSION; print(VERSION)" 2>/dev/null || \
+                 python3 -c "import re; m=re.search(r'VERSION\s*=\s*\"([^\"]+)\"', open('$SCRIPT_DIR/core/constants.py').read()); print(m.group(1))")
     PLIST="dist/$APP_NAME.app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$PLIST"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "$PLIST"

@@ -3,7 +3,7 @@ REM ── interiorcad Stammdaten Tool – Windows App Builder ─────�
 setlocal
 
 set SCRIPT_DIR=%~dp0
-set PY_SCRIPT=%SCRIPT_DIR%interiorcad_stammdaten.py
+set PY_SCRIPT=%SCRIPT_DIR%main.py
 set ICON=%SCRIPT_DIR%AppIcon.ico
 set APP_NAME=interiorcad Stammdaten
 
