@@ -113,6 +113,135 @@ class EditDialog(tk.Toplevel):
         self.destroy()
 
 
+class BulkEditDialog(tk.Toplevel):
+    def __init__(self, parent, rows, on_save):
+        super().__init__(parent)
+        self.title("{} Einträge bearbeiten".format(len(rows)))
+        self.resizable(True, True)
+        self.grab_set()
+        self._rows    = rows
+        self._on_save = on_save
+        self._vars    = {}
+        self._enabled = {}
+        self._build()
+        self.update_idletasks()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        w = min(620, sw - 40)
+        h = min(int(sh * 0.85), sh - 80)
+        self.geometry("{}x{}+{}+{}".format(w, h, (sw - w) // 2, (sh - h) // 2))
+
+    def _build(self):
+        fields = [
+            ("Bezeichnung",           "description", False),
+            ("Lieferant",             "supplier",    False),
+            ("Preis",                 "price",       False),
+            ("Einheit",               "unit",        False),
+            ("Menge/Einheit",         "amount",      False),
+            ("Verschnitt (%)",        "waste",       False),
+            ("Aufschlag",             "markup",      False),
+            ("Stärke (mm)",           "thickness",   False),
+            ("Gruppe",                "group",       False),
+            ("Textur (Platte)",       "texture",     False),
+            ("Std. Stärke",           "def_thick",   False),
+            ("Maserrichtung",         "grain",       True),
+            ("Materialtyp",           "btype",       True),
+            ("Beschichtung 1 (mm)",   "cov1_thick",  False),
+            ("Beschichtung 2 (mm)",   "cov2_thick",  False),
+            ("Textur Beschichtung 1", "cov1_tex",    False),
+            ("Textur Beschichtung 2", "cov2_tex",    False),
+        ]
+
+        outer = ttk.Frame(self, padding=PAD_L)
+        outer.pack(fill="both", expand=True)
+        outer.columnconfigure(2, weight=1)
+
+        ttk.Label(outer, text="Anwenden", font=FONT_SM, anchor="center").grid(
+            row=0, column=0, padx=(0, PAD_S))
+        ttk.Label(outer, text="Feld", font=FONT_SM, anchor="w").grid(
+            row=0, column=1, padx=(0, PAD_S), sticky="w")
+        ttk.Label(outer, text="Neuer Wert", font=FONT_SM, anchor="w").grid(
+            row=0, column=2, sticky="w")
+        ttk.Separator(outer, orient="horizontal").grid(
+            row=1, column=0, columnspan=3, sticky="ew", pady=(2, PAD_XS))
+
+        for i, (label, key, is_dropdown) in enumerate(fields):
+            row_i = i + 2
+            enabled_var = tk.BooleanVar(value=False)
+            self._enabled[key] = enabled_var
+
+            ttk.Checkbutton(outer, variable=enabled_var).grid(
+                row=row_i, column=0, pady=2)
+            ttk.Label(outer, text=label, font=FONT_SM, width=22, anchor="w").grid(
+                row=row_i, column=1, sticky="w", padx=(0, PAD_S), pady=2)
+
+            initial = self._rows[0].get(key, "")
+            var = tk.StringVar(value=initial)
+            self._vars[key] = var
+
+            if key == "grain":
+                dvals = [o[0] for o in GRAIN_OPTIONS]
+                ivals = [o[1] for o in GRAIN_OPTIONS]
+                cb = ttk.Combobox(outer, values=dvals, state="readonly",
+                                  width=28, font=FONT_BODY)
+                try:
+                    cb.current(ivals.index(var.get()))
+                except ValueError:
+                    cb.current(0)
+                cb.grid(row=row_i, column=2, sticky="ew", pady=2)
+                def _g(v=var, iv=ivals, dv=dvals, c=cb, ev=enabled_var):
+                    def sel(e):
+                        try:
+                            v.set(iv[dv.index(c.get())])
+                            ev.set(True)
+                        except ValueError:
+                            pass
+                    return sel
+                cb.bind("<<ComboboxSelected>>", _g())
+
+            elif key == "btype":
+                dvals = [o[0] for o in TYPE_OPTIONS]
+                ivals = [o[1] for o in TYPE_OPTIONS]
+                cb = ttk.Combobox(outer, values=dvals, state="readonly",
+                                  width=28, font=FONT_BODY)
+                try:
+                    cb.current(ivals.index(var.get()))
+                except ValueError:
+                    cb.current(0)
+                cb.grid(row=row_i, column=2, sticky="ew", pady=2)
+                def _t(v=var, iv=ivals, dv=dvals, c=cb, ev=enabled_var):
+                    def sel(e):
+                        try:
+                            v.set(iv[dv.index(c.get())])
+                            ev.set(True)
+                        except ValueError:
+                            pass
+                    return sel
+                cb.bind("<<ComboboxSelected>>", _t())
+
+            else:
+                ttk.Entry(outer, textvariable=var, width=32,
+                          font=FONT_BODY).grid(row=row_i, column=2, sticky="ew", pady=2)
+
+        ttk.Separator(outer, orient="horizontal").grid(
+            row=len(fields) + 2, column=0, columnspan=3, sticky="ew",
+            pady=(PAD_M, 0))
+        bf = ttk.Frame(outer)
+        bf.grid(row=len(fields) + 3, column=0, columnspan=3,
+                sticky="ew", pady=(PAD_S, 0))
+        ttk.Button(bf, text="Abbrechen", command=self.destroy).pack(side="left")
+        ttk.Button(bf, text="Übernehmen", command=self._save).pack(side="right")
+
+    def _save(self):
+        changes = {key: self._vars[key].get().strip()
+                   for key, ev in self._enabled.items() if ev.get()}
+        if not changes:
+            messagebox.showwarning("Keine Änderungen",
+                "Bitte mindestens ein Feld zum Anwenden auswählen.", parent=self)
+            return
+        self._on_save(changes)
+        self.destroy()
+
+
 class BoardsTable(tk.Toplevel):
     def __init__(self, parent, filepath):
         super().__init__(parent)
@@ -209,15 +338,30 @@ class BoardsTable(tk.Toplevel):
         return [r for r in self._rows if r["item_no"] in sel]
 
     def _edit_selected(self):
-        row = self._selected_row()
-        if not row:
+        sel = self._tree.selection()
+        if not sel:
+            messagebox.showwarning("Keine Auswahl",
+                "Bitte zuerst eine Zeile auswählen.", parent=self)
             return
-        def on_save(updated):
-            idx = next(i for i, r in enumerate(self._rows)
-                       if r["item_no"] == row["item_no"])
-            self._rows[idx] = updated
-            self._apply_filter()
-        EditDialog(self, row, on_save)
+        if len(sel) == 1:
+            row = next((r for r in self._rows if r["item_no"] == sel[0]), None)
+            if not row:
+                return
+            def on_save(updated):
+                idx = next(i for i, r in enumerate(self._rows)
+                           if r["item_no"] == row["item_no"])
+                self._rows[idx] = updated
+                self._apply_filter()
+            EditDialog(self, row, on_save)
+        else:
+            rows = [r for r in self._rows if r["item_no"] in set(sel)]
+            def on_save(changes):
+                sel_set = set(sel)
+                for r in self._rows:
+                    if r["item_no"] in sel_set:
+                        r.update(changes)
+                self._apply_filter()
+            BulkEditDialog(self, rows, on_save)
 
     def _duplicate_selected(self):
         row = self._selected_row()
