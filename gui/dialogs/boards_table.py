@@ -68,6 +68,7 @@ class EditDialog(tk.Toplevel):
                                   values=dvals, state="readonly",
                                   width=28, font=FONT_BODY)
                 cb.grid(row=i, column=1, sticky="ew", pady=2)
+                cb.set(dvar.get())
                 def _g(v=var, iv=ivals, dv=dvals, c=cb):
                     def sel(e):
                         try:
@@ -89,6 +90,7 @@ class EditDialog(tk.Toplevel):
                                   values=dvals, state="readonly",
                                   width=28, font=FONT_BODY)
                 cb.grid(row=i, column=1, sticky="ew", pady=2)
+                cb.set(dvar.get())
                 def _t(v=var, iv=ivals, dv=dvals, c=cb):
                     def sel(e):
                         try:
@@ -166,10 +168,19 @@ class BoardsTable(tk.Toplevel):
         self._populate()
 
     def _populate(self, rows=None):
+        _grain = {o[1]: o[0] for o in GRAIN_OPTIONS}
+        _btype = {o[1]: o[0] for o in TYPE_OPTIONS}
         self._tree.delete(*self._tree.get_children())
         display = self._rows if rows is None else rows
         for r in display:
-            vals = [r.get(c[0], "") for c in BOARD_COLUMNS]
+            vals = []
+            for key, _, _ in BOARD_COLUMNS:
+                v = r.get(key, "")
+                if key == "grain":
+                    v = _grain.get(v, v)
+                elif key == "btype":
+                    v = _btype.get(v, v)
+                vals.append(v)
             self._tree.insert("", "end", iid=r["item_no"], values=vals)
 
     def _apply_filter(self):
