@@ -60,11 +60,16 @@ def find_agos_mac():
 
     def add(folder_path, label=None, overwrite=False):
         sd = os.path.join(folder_path, STAMMDATEN_REL)
-        if os.path.isfile(os.path.join(sd, "Boards.txt")) and \
-           os.path.isfile(os.path.join(sd, "Edges.txt")):
-            sd_real = os.path.realpath(sd)
-            if sd_real not in found or overwrite:
-                found[sd_real] = label or os.path.basename(folder_path)
+        b  = os.path.join(sd, "Boards.txt")
+        e  = os.path.join(sd, "Edges.txt")
+        try:
+            open(b, "rb").close()
+            open(e, "rb").close()
+        except Exception:
+            return
+        sd_real = os.path.realpath(sd)
+        if sd_real not in found or overwrite:
+            found[sd_real] = label or os.path.basename(folder_path)
 
     vw_base = os.path.expanduser("~/Library/Application Support/Vectorworks")
     for settings_file in glob.glob(
@@ -76,10 +81,9 @@ def find_agos_mac():
                 el = root.find(".//" + tag)
                 if el is not None and el.text:
                     _p = el.text.strip().rstrip("/")
-                    if os.path.isdir(_p):
-                        _n = os.path.basename(_p)
-                        if _n:
-                            add(_p, _n, overwrite=True)
+                    _n = os.path.basename(_p)
+                    if _n:
+                        add(_p, _n, overwrite=True)
         except Exception:
             pass
 
