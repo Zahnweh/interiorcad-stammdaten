@@ -45,41 +45,6 @@ jobs:
           generate_release_notes: true
           files: interiorcad-Stammdaten-mac-arm64.zip
 
-  build-mac-intel:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: PyInstaller installieren
-        run: pip install pyinstaller
-
-      - name: App bauen (Intel)
-        run: |
-          pyinstaller \
-            --windowed \
-            --name "interiorcad Stammdaten" \
-            --icon "AppIcon.icns" \
-            --osx-bundle-identifier "com.interiorcad.stammdaten" \
-            --hidden-import tkinter \
-            --hidden-import tkinter.ttk \
-            --hidden-import tkinter.filedialog \
-            --hidden-import tkinter.messagebox \
-            main.py
-
-      - name: Paketieren
-        run: |
-          cd dist
-          zip -r "../interiorcad-Stammdaten-mac-intel.zip" "interiorcad Stammdaten.app"
-
-      - name: Release-Asset hochladen
-        uses: softprops/action-gh-release@v2
-        with:
-          files: interiorcad-Stammdaten-mac-intel.zip
-
   build-windows:
     runs-on: windows-latest
     steps:
