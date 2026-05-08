@@ -1,0 +1,62 @@
+name: Windows Build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release-Tag für den Upload (z.B. v1.1.0)'
+        required: true
+        default: 'v1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: PyInstaller installieren
+        run: pip install pyinstaller
+
+      - name: Windows-App bauen
+        run: |
+          pyinstaller `
+            --windowed `
+            --onefile `
+            --name "interiorcad Stammdaten" `
+            --icon AppIcon.ico `
+            --hidden-import tkinter `
+            --hidden-import tkinter.ttk `
+            --hidden-import tkinter.filedialog `
+            --hidden-import tkinter.messagebox `
+            main.py
+
+      - name: Exe umbenennen
+        run: Move-Item "dist\interiorcad Stammdaten.exe" "dist\interiorcad-Stammdaten-windows.exe"
+
+      - name: Release-Tag ermitteln
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Zu GitHub Release hochladen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          files: dist/interiorcad-Stammdaten-windows.exe
