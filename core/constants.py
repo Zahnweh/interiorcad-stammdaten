@@ -1,6 +1,6 @@
 import os
 
-VERSION     = "1.1.2"
+VERSION     = "1.1.3"
 GITHUB_REPO = "Zahnweh/interiorcad-stammdaten"
 
 BOARD_THICKNESSES = [5, 8, 13, 16, 19, 22, 25, 28, 32, 38]

@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 
 from core.constants import BOARD_COLUMNS, GRAIN_OPTIONS, TYPE_OPTIONS
 from core.file_io import parse_boards, write_boards
-from gui.theme import FONT_BODY, FONT_SM, PAD_S, PAD_M, PAD_L
+from gui.theme import FONT_BODY, FONT_SM, PAD_XS, PAD_S, PAD_M, PAD_L
 
 
 class EditDialog(tk.Toplevel):
