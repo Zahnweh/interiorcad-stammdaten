@@ -31,18 +31,32 @@ def _get_app_path():
     return sys.executable
 
 
+def _make_ssl_ctx():
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        pass
+    ctx = ssl.create_default_context()
+    if IS_MAC:
+        for _p in (
+            "/etc/ssl/cert.pem",
+            "/etc/ssl/certs/ca-certificates.crt",
+            "/Library/Python/Current/lib/python/site-packages/certifi/cacert.pem",
+        ):
+            if os.path.exists(_p):
+                return ssl.create_default_context(cafile=_p)
+    return ctx
+
+
 def _check_for_updates(app, silent=True):
-    import urllib.request, json as _json, ssl
+    import urllib.request, json as _json
     try:
         url = "https://api.github.com/repos/{}/releases/latest".format(GITHUB_REPO)
         req = urllib.request.Request(
             url, headers={"User-Agent": "interiorcad-Stammdaten/{}".format(VERSION)})
-        ctx = ssl.create_default_context()
-        if getattr(sys, "frozen", False) and IS_MAC:
-            for _p in ("/etc/ssl/cert.pem", "/etc/ssl/certs/ca-certificates.crt"):
-                if os.path.exists(_p):
-                    ctx = ssl.create_default_context(cafile=_p)
-                    break
+        ctx = _make_ssl_ctx()
         with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
             data = _json.loads(resp.read().decode())
         tag = data.get("tag_name", "")
@@ -100,16 +114,27 @@ def _run_download(app, url, tag):
     def _worker():
         tmp = tempfile.mktemp(suffix=suffix)
         try:
-            def _progress(count, block, total):
-                if dlg.cancelled:
-                    raise Exception("Abgebrochen")
-                if total > 0:
-                    pct      = min(100, count * block * 100 // total)
-                    done_mb  = count * block / 1_048_576
-                    total_mb = total / 1_048_576
-                    app.after(0, lambda p=pct, d=done_mb, t=total_mb:
-                        dlg.set_progress(p, "{:.1f} / {:.1f} MB".format(d, t)))
-            urllib.request.urlretrieve(url, tmp, reporthook=_progress)
+            ctx = _make_ssl_ctx()
+            req = urllib.request.Request(
+                url, headers={"User-Agent": "interiorcad-Stammdaten/{}".format(VERSION)})
+            with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
+                total = int(resp.headers.get("Content-Length", 0))
+                done  = 0
+                with open(tmp, "wb") as f:
+                    while True:
+                        if dlg.cancelled:
+                            raise Exception("Abgebrochen")
+                        chunk = resp.read(65536)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        done += len(chunk)
+                        if total > 0:
+                            pct      = min(100, done * 100 // total)
+                            done_mb  = done / 1_048_576
+                            total_mb = total / 1_048_576
+                            app.after(0, lambda p=pct, d=done_mb, t=total_mb:
+                                dlg.set_progress(p, "{:.1f} / {:.1f} MB".format(d, t)))
             if dlg.cancelled:
                 return
             app.after(0, lambda: dlg.destroy())
