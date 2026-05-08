@@ -59,16 +59,13 @@ class EditDialog(tk.Toplevel):
             if key == "grain":
                 dvals = [o[0] for o in GRAIN_OPTIONS]
                 ivals = [o[1] for o in GRAIN_OPTIONS]
-                dvar  = tk.StringVar()
-                try:
-                    dvar.set(dvals[ivals.index(var.get())])
-                except ValueError:
-                    dvar.set(dvals[0])
-                cb = ttk.Combobox(outer, textvariable=dvar,
-                                  values=dvals, state="readonly",
+                cb = ttk.Combobox(outer, values=dvals, state="readonly",
                                   width=28, font=FONT_BODY)
+                try:
+                    cb.current(ivals.index(var.get()))
+                except ValueError:
+                    cb.current(0)
                 cb.grid(row=i, column=1, sticky="ew", pady=2)
-                cb.set(dvar.get())
                 def _g(v=var, iv=ivals, dv=dvals, c=cb):
                     def sel(e):
                         try:
@@ -81,16 +78,13 @@ class EditDialog(tk.Toplevel):
             elif key == "btype":
                 dvals = [o[0] for o in TYPE_OPTIONS]
                 ivals = [o[1] for o in TYPE_OPTIONS]
-                dvar  = tk.StringVar()
-                try:
-                    dvar.set(dvals[ivals.index(var.get())])
-                except ValueError:
-                    dvar.set(dvals[0])
-                cb = ttk.Combobox(outer, textvariable=dvar,
-                                  values=dvals, state="readonly",
+                cb = ttk.Combobox(outer, values=dvals, state="readonly",
                                   width=28, font=FONT_BODY)
+                try:
+                    cb.current(ivals.index(var.get()))
+                except ValueError:
+                    cb.current(0)
                 cb.grid(row=i, column=1, sticky="ew", pady=2)
-                cb.set(dvar.get())
                 def _t(v=var, iv=ivals, dv=dvals, c=cb):
                     def sel(e):
                         try:
