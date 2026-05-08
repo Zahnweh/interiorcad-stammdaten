@@ -32,7 +32,7 @@ jobs:
             --hidden-import tkinter.ttk \
             --hidden-import tkinter.filedialog \
             --hidden-import tkinter.messagebox \
-            interiorcad_stammdaten.py
+            main.py
 
       - name: Paketieren
         run: |
@@ -68,7 +68,7 @@ jobs:
             --hidden-import tkinter.ttk \
             --hidden-import tkinter.filedialog \
             --hidden-import tkinter.messagebox \
-            interiorcad_stammdaten.py
+            main.py
 
       - name: Paketieren
         run: |
@@ -102,7 +102,7 @@ jobs:
           --hidden-import tkinter.ttk
           --hidden-import tkinter.filedialog
           --hidden-import tkinter.messagebox
-          interiorcad_stammdaten.py
+          main.py
 
       - name: Release-Asset hochladen
         uses: softprops/action-gh-release@v2
